@@ -1,42 +1,97 @@
-version: '3'
-
+---
+version: '3.7'
 services:
+
+  tor:
+    image: goldy/tor-hidden-service:latest
+    links:
+    - nginx
+    volumes:
+    - ./tor_keys:/var/lib/tor/hidden_service/
+    environment:
+      PROXY_MAP: 80:80 # first port is exposed port and the second one is service internal port.
+      # Set mapping ports
+      # SERVICE_TOR_SERVICE_HOSTS: 80:web:80
+      # v2vpvqo56y2aujrf.onion
+      # Set private key
+      SERVICE_TOR_SERVICE_KEY: |
+          -----BEGIN RSA PRIVATE KEY-----
+          MIICXAIBAAKBgQDhWc6JkD2q+8Bexc4B36Hvpp52qleDBu13fA2fGwwO31ydMSSt
+          tuJkztrOuQbC1IeYEgfFEfzjmzOmRGgMpEonbbii35OY4bEKRYEsXDRwjoWgWfUx
+          2M19YtO830mzyNqPIjHD3aFaxkgUV9lFd1G0Eua6yJci54MS4duwZ1dSgQIDAQAB
+          AoGACg6Mt9lq0yBglaostyswiiYssL2J4cRToS81WWom19wSgUZh7Wm5wUd0/uBF
+          g7jh40C8vYf/ufWhcLRhU10anQHjA/aYWdTYxS4uQVNHCj+3Xw/l78V0goLfoS+H
+          dE/gtGP04qdCjaravgoXcC+1h1nAyokRY7noSVrQSeKx4UECQQDks1KG6lzvJuAx
+          8Re90v2Kwd9RQ321tbRfxej0wy+D+grs3SrZrLFE9vIrebtQAMDYrAChu03a9J14
+          aJ6y4hqRAkEA/EAf3hfa7SA67hWPvzzWiNHjML0cgLljZrF6zEAGrgqdwKyTk3Dw
+          BIfTkKlNWhYEHiRhzcLLjE3AeyPAJr9Q8QJBALUJ+w9P4Odzx8/hASFEL26zD/u9
+          SHsabsHN4h43kJqRyio83dnYaa+lKIkf4RZwsjgS2KEuq2/jafBSKSaD8/ECQAv0
+          dg4ujz+hwWk7OF7V4U0GtX+/1rP7FUzuqGU5u5dQBX32L+BS/+0XCt3WSEY2uOc8
+          zi3UR5VUsgSkAx1S/+ECQBUt6LingUHrYDgtmhnuXWQWmy8ZubvvD1sGVog3M9Hz
+          FTJ6xOzrfWXmE0EhZdc2l1AZ59IrMXUvc7N1djxQBso=
+          -----END RSA PRIVATE KEY-----
+
   php73:
     image: wordpress:php7.3-fpm
-    restart: always
+    # restart: unless-stopped
+    links:
+    - mariadb
     networks:
-      - internal
+    - internal
     volumes:
-      - $PWD/html:/var/www/html:rw
+    - ${PWD}/htdocs:/var/www/html:rw
+
   nginx:
     image: nginx 
-    restart: always
+    # restart: unless-stopped
     networks:
-      - internal
-      - web
+    - internal
+    - web
+    ports:
+    - "80:80"
+    # - "443:443"
     volumes:
-      - $PWD/default.conf:/etc/nginx/conf.d/default.conf
-      - $PWD/html:/var/www/html:rw
+    - ${PWD}/default.conf:/etc/nginx/conf.d/default.conf
+    - ${PWD}/htdocs:/var/www/html:rw
     labels:
-      - "traefik.enable=true"
-      - "traefik.backend=paulotech"
-      - "traefik.frontend.rule=Host:seusite.com.br"
-      - "traefik.port=80"
-      - "traefik.docker.network=web"
+    - "traefik.enable=true"
+    - "traefik.backend=paulotech"
+    - "traefik.frontend.rule=Host:localhost"
+    - "traefik.port=80"
+    - "traefik.docker.network=web"
 
   mariadb:
-    image: mariadb
-    restart: always
+    image: mariadb:latest
+    # restart: unless-stopped
     networks:
-      - internal
+    - internal
     environment:
-      MYSQL_ROOT_PASSWORD: "wordpress"
-      MYSQL_DATABASE: "wordpress"
+      MYSQL_ROOT_PASSWORD: supercow
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+    ports:
+    - "3306:3306"
     volumes:
-      - $PWD/datadir:/var/lib/mysql:rw
+    - ./db/config:/etc/mysql/conf.d
+    - db-data:/var/lib/mysql
+    # restart: unless-stopped
+
+  #ftp:
+  #  image: atmoz/sftp:alpine
+  #  restart: unless-stopped
+  #  ports:
+  #  - "2222:22"
+  #  volumes:
+  #  - web:/var/www/html
+  #  command: php:wordpress:1000
 
 networks:
   web:
     external: true
   internal:
+    external: false
+
+volumes:
+  db-data:
     external: false
