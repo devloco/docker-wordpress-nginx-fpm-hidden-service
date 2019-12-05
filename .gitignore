@@ -6,3 +6,7 @@ htdocs
 htdocs/
 htdocs/*
 htdocs/**
+tor_keys
+tor_keys/
+tor_keys/*
+tor_keys/**
