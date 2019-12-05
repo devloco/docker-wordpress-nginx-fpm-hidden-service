@@ -5,35 +5,40 @@ services:
   tor:
     image: goldy/tor-hidden-service:latest
     links:
-    - nginx
+    - web
+    - wordpress
+    depends_on:
+    - web
     volumes:
     - ./tor_keys:/var/lib/tor/hidden_service/
     environment:
-      PROXY_MAP: 80:80 # first port is exposed port and the second one is service internal port.
+      # PROXY_MAP: 80:80 # first port is exposed port and the second one is service internal port.
       # Set mapping ports
-      # SERVICE_TOR_SERVICE_HOSTS: 80:web:80
+      SERVICE_TOR_SERVICE_HOSTS: 80:wordpress:80,800:wordpress:80,8888:wordpress:80
       # v2vpvqo56y2aujrf.onion
       # Set private key
       SERVICE_TOR_SERVICE_KEY: |
-          -----BEGIN RSA PRIVATE KEY-----
-          MIICXAIBAAKBgQDhWc6JkD2q+8Bexc4B36Hvpp52qleDBu13fA2fGwwO31ydMSSt
-          tuJkztrOuQbC1IeYEgfFEfzjmzOmRGgMpEonbbii35OY4bEKRYEsXDRwjoWgWfUx
-          2M19YtO830mzyNqPIjHD3aFaxkgUV9lFd1G0Eua6yJci54MS4duwZ1dSgQIDAQAB
-          AoGACg6Mt9lq0yBglaostyswiiYssL2J4cRToS81WWom19wSgUZh7Wm5wUd0/uBF
-          g7jh40C8vYf/ufWhcLRhU10anQHjA/aYWdTYxS4uQVNHCj+3Xw/l78V0goLfoS+H
-          dE/gtGP04qdCjaravgoXcC+1h1nAyokRY7noSVrQSeKx4UECQQDks1KG6lzvJuAx
-          8Re90v2Kwd9RQ321tbRfxej0wy+D+grs3SrZrLFE9vIrebtQAMDYrAChu03a9J14
-          aJ6y4hqRAkEA/EAf3hfa7SA67hWPvzzWiNHjML0cgLljZrF6zEAGrgqdwKyTk3Dw
-          BIfTkKlNWhYEHiRhzcLLjE3AeyPAJr9Q8QJBALUJ+w9P4Odzx8/hASFEL26zD/u9
-          SHsabsHN4h43kJqRyio83dnYaa+lKIkf4RZwsjgS2KEuq2/jafBSKSaD8/ECQAv0
-          dg4ujz+hwWk7OF7V4U0GtX+/1rP7FUzuqGU5u5dQBX32L+BS/+0XCt3WSEY2uOc8
-          zi3UR5VUsgSkAx1S/+ECQBUt6LingUHrYDgtmhnuXWQWmy8ZubvvD1sGVog3M9Hz
-          FTJ6xOzrfWXmE0EhZdc2l1AZ59IrMXUvc7N1djxQBso=
-          -----END RSA PRIVATE KEY-----
+        -----BEGIN RSA PRIVATE KEY-----
+        MIICXAIBAAKBgQDhWc6JkD2q+8Bexc4B36Hvpp52qleDBu13fA2fGwwO31ydMSSt
+        tuJkztrOuQbC1IeYEgfFEfzjmzOmRGgMpEonbbii35OY4bEKRYEsXDRwjoWgWfUx
+        2M19YtO830mzyNqPIjHD3aFaxkgUV9lFd1G0Eua6yJci54MS4duwZ1dSgQIDAQAB
+        AoGACg6Mt9lq0yBglaostyswiiYssL2J4cRToS81WWom19wSgUZh7Wm5wUd0/uBF
+        g7jh40C8vYf/ufWhcLRhU10anQHjA/aYWdTYxS4uQVNHCj+3Xw/l78V0goLfoS+H
+        dE/gtGP04qdCjaravgoXcC+1h1nAyokRY7noSVrQSeKx4UECQQDks1KG6lzvJuAx
+        8Re90v2Kwd9RQ321tbRfxej0wy+D+grs3SrZrLFE9vIrebtQAMDYrAChu03a9J14
+        aJ6y4hqRAkEA/EAf3hfa7SA67hWPvzzWiNHjML0cgLljZrF6zEAGrgqdwKyTk3Dw
+        BIfTkKlNWhYEHiRhzcLLjE3AeyPAJr9Q8QJBALUJ+w9P4Odzx8/hASFEL26zD/u9
+        SHsabsHN4h43kJqRyio83dnYaa+lKIkf4RZwsjgS2KEuq2/jafBSKSaD8/ECQAv0
+        dg4ujz+hwWk7OF7V4U0GtX+/1rP7FUzuqGU5u5dQBX32L+BS/+0XCt3WSEY2uOc8
+        zi3UR5VUsgSkAx1S/+ECQBUt6LingUHrYDgtmhnuXWQWmy8ZubvvD1sGVog3M9Hz
+        FTJ6xOzrfWXmE0EhZdc2l1AZ59IrMXUvc7N1djxQBso=
+        -----END RSA PRIVATE KEY-----
 
-  php73:
+  wordpress:
     image: wordpress:php7.3-fpm
-    # restart: unless-stopped
+    restart: unless-stopped
+    depends_on:
+    - mariadb
     links:
     - mariadb
     networks:
@@ -41,12 +46,18 @@ services:
     volumes:
     - ${PWD}/htdocs:/var/www/html:rw
 
-  nginx:
+  web:
     image: nginx 
-    # restart: unless-stopped
+    restart: unless-stopped
+    links:
+    - wordpress
+    depends_on:
+    - wordpress
     networks:
     - internal
     - web
+    expose:
+    - 80
     ports:
     - "80:80"
     # - "443:443"
@@ -62,7 +73,7 @@ services:
 
   mariadb:
     image: mariadb:latest
-    # restart: unless-stopped
+    restart: unless-stopped
     networks:
     - internal
     environment:
