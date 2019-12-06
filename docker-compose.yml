@@ -88,6 +88,30 @@ services:
     ports:
     - "6379:6379"
 
+  elastic:
+    image: extremeshok/elasticsearch-elasticpress:latest
+    volumes:
+    - vol-elastic:/usr/share/elasticsearch/data
+    # restart: unless-stopped
+    environment:
+    - TZ=${TZ}
+    - discovery.type=single-node
+    - bootstrap.memory_lock=true
+    - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+    - 9200:9200
+    dns:
+    - ${IPV4_NETWORK:-172.22.1}.254
+    sysctls:
+    - net.ipv6.conf.all.disable_ipv6=${SYSCTL_IPV6_DISABLED:-0}
+    networks:
+      network:
+        ipv4_address: ${IPV4_NETWORK:-172.22.1}.231
+
   # solr:
   #   image: wodby/solr:$SOLR_TAG
   #   environment:
@@ -105,3 +129,5 @@ services:
 volumes:
   db-data:
     external: false
+  vol-elastic:
+    external: false    
