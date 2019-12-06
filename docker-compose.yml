@@ -6,15 +6,15 @@ services:
     image: goldy/tor-hidden-service:latest
     links:
     - web
-    - wordpress
+    # - wordpress
     depends_on:
     - web
     volumes:
     - ./tor_keys:/var/lib/tor/hidden_service/
     environment:
-      # PROXY_MAP: 80:80 # first port is exposed port and the second one is service internal port.
+      PROXY_MAP: 80:80 # first port is exposed port and the second one is service internal port.
       # Set mapping ports
-      SERVICE_TOR_SERVICE_HOSTS: 80:wordpress:80,800:wordpress:80,8888:wordpress:80
+      SERVICE_TOR_SERVICE_HOSTS: 80:web:80
       # v2vpvqo56y2aujrf.onion
       # Set private key
       SERVICE_TOR_SERVICE_KEY: |
@@ -33,49 +33,34 @@ services:
         zi3UR5VUsgSkAx1S/+ECQBUt6LingUHrYDgtmhnuXWQWmy8ZubvvD1sGVog3M9Hz
         FTJ6xOzrfWXmE0EhZdc2l1AZ59IrMXUvc7N1djxQBso=
         -----END RSA PRIVATE KEY-----
+    # restart: unless-stopped
 
   wordpress:
     image: wordpress:php7.3-fpm
-    restart: unless-stopped
     depends_on:
     - mariadb
     links:
     - mariadb
-    networks:
-    - internal
     volumes:
     - ${PWD}/htdocs:/var/www/html:rw
 
   web:
     image: nginx 
-    restart: unless-stopped
     links:
     - wordpress
     depends_on:
     - wordpress
-    networks:
-    - internal
-    - web
-    expose:
-    - 80
     ports:
     - "80:80"
     # - "443:443"
     volumes:
     - ${PWD}/default.conf:/etc/nginx/conf.d/default.conf
     - ${PWD}/htdocs:/var/www/html:rw
-    labels:
-    - "traefik.enable=true"
-    - "traefik.backend=paulotech"
-    - "traefik.frontend.rule=Host:localhost"
-    - "traefik.port=80"
-    - "traefik.docker.network=web"
+    # restart: unless-stopped
 
   mariadb:
     image: mariadb:latest
     restart: unless-stopped
-    networks:
-    - internal
     environment:
       MYSQL_ROOT_PASSWORD: supercow
       MYSQL_DATABASE: wordpress
@@ -86,7 +71,6 @@ services:
     volumes:
     - ./db/config:/etc/mysql/conf.d
     - db-data:/var/lib/mysql
-    # restart: unless-stopped
 
   #ftp:
   #  image: atmoz/sftp:alpine
@@ -96,12 +80,6 @@ services:
   #  volumes:
   #  - web:/var/www/html
   #  command: php:wordpress:1000
-
-networks:
-  web:
-    external: true
-  internal:
-    external: false
 
 volumes:
   db-data:
